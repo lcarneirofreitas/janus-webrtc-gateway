@@ -1,3 +1,4 @@
+#!/bin/bash
 # Dockerfile voxbone-workshop
 # https://github.com/voxbone-workshop/janus_gateway
 # Thu Dec 13 12:39:03 -02 2018
