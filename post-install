@@ -1,0 +1,4 @@
+# link confs janus
+ln -sfT /opt/janus/etc/janus /etc/janus
+# log directorie
+mkdir /var/log/janus
