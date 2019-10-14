@@ -83,13 +83,13 @@ cd $DIR && cp -pvr $DIR/usr/* /usr/
 ### Build janus gateway
 cd $DIR && git clone https://github.com/meetecho/janus-gateway.git && \
 	cd janus-gateway && \
+	# Issue Janus, debug memory
+	# https://github.com/meetecho/janus-gateway/issues/1808
+	sed -i 's|//~ #define REFCOUNT_DEBUG|#define REFCOUNT_DEBUG|g' refcount.h && \
 	./autogen.sh && \
-        # enable code dump janus
+        # Enable code dump janus
         #export CFLAGS="-fsanitize=address -fno-omit-frame-pointer" && \
         #export LDFLAGS="-lasan" && \
-	#export LD_LIBRARY_PATH="/vagrant/usr" && \
-	#export LD_RUN_PATH="/vagrant/usr" && \
-	#export PKG_CONFIG_PATH="/vagrant/usr/lib/pkgconfig" && \
 	./configure \
 		--prefix=/opt/janus \
 		--disable-docs \
