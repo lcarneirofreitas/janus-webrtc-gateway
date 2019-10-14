@@ -2,7 +2,7 @@
 # Dockerfile voxbone-workshop
 # https://github.com/voxbone-workshop/janus_gateway
 # Thu Dec 13 12:39:03 -02 2018
-DIR=$(pwd)
+DIR="/vagrant"
 
 ### build tools ###
 apt-get update && apt-get install -y \
@@ -77,15 +77,19 @@ cd $DIR && wget http://conf.meetecho.com/sofiasip/sofia-sip-1.12.11.tar.gz && \
 	make install && \
 	rm -rf $DIR/sofia-sip-1.12.11*
 
+### Copy libs to build janus
+cd $DIR && cp -pvr $DIR/usr/* /usr/
+
 ### Build janus gateway
 cd $DIR && git clone https://github.com/meetecho/janus-gateway.git && \
 	cd janus-gateway && \
 	./autogen.sh && \
         # enable code dump janus
-        export CFLAGS="-fsanitize=address -fno-omit-frame-pointer" && \
-        export LDFLAGS="-lasan" && \
-	export LD_LIBRARY_PATH="$DIR/usr" && \
-	export LD_RUN_PATH="$DIR/usr" && \
+        #export CFLAGS="-fsanitize=address -fno-omit-frame-pointer" && \
+        #export LDFLAGS="-lasan" && \
+	#export LD_LIBRARY_PATH="/vagrant/usr" && \
+	#export LD_RUN_PATH="/vagrant/usr" && \
+	#export PKG_CONFIG_PATH="/vagrant/usr/lib/pkgconfig" && \
 	./configure \
 		--prefix=/opt/janus \
 		--disable-docs \
@@ -105,17 +109,14 @@ cd $DIR && git clone https://github.com/meetecho/janus-gateway.git && \
 	make configs && \
 	rm -rf $DIR/janus-gateway*
 
-### Cleaning ###
-### apt-get clean && apt-get autoclean && apt-get autoremove -y
-
 ### Create deb package janus-webrtc-gateway
 cd $DIR
 apt-get install ruby ruby-dev rubygems build-essential -y
 gem install --no-ri --no-rdoc fpm
 
 NAME=janus-webrtc-gateway
-VERSION=1
-MINOR=12
+VERSION=4
+MINOR=1
 
 mkdir $DIR/opt && \
 	cp -pvr /opt/janus $DIR/opt/
@@ -138,4 +139,8 @@ fpm -s dir -t deb -n $NAME -v $MINOR-$VERSION \
 	--description "Janus Webrtc Gateway Teravoz" \
 	--maintainer "leandro.freitas@teravoz.com.br" \
 	etc opt usr
+
+### Cleaning ###
+cd $DIR && rm -rf usr opt && \
+apt-get clean && apt-get autoclean && apt-get autoremove -y
 
