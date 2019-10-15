@@ -1,18 +1,20 @@
-#!/bin/bash
 # Dockerfile voxbone-workshop
 # https://github.com/voxbone-workshop/janus_gateway
 # Thu Dec 13 12:39:03 -02 2018
-DIR="/vagrant"
+FROM ubuntu:16.04
+
+### Copy files
+COPY . /root/ 
 
 ### build tools ###
-apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
 	build-essential \
 	autoconf \
 	automake \
 	cmake
 
 ### Utils ###
-apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
 	vim \
 	curl \
 	psmisc \
@@ -22,7 +24,7 @@ apt-get update && apt-get install -y \
 	unzip
 
 ### Janus ###
-apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
 	libmicrohttpd-dev \
 	libjansson-dev \
 	libglib2.0-dev \
@@ -36,56 +38,56 @@ apt-get update && apt-get install -y \
 	libcurl4-openssl-dev
 
 ### Build libnice
-cd $DIR && wget https://nice.freedesktop.org/releases/libnice-0.1.16.tar.gz && \
+RUN cd /root && wget https://nice.freedesktop.org/releases/libnice-0.1.16.tar.gz && \
 	tar xvf libnice-0.1.16.tar.gz && \
 	cd libnice-0.1.16 && \
-	./configure --prefix=$DIR/usr && \
+	./configure --prefix=/root/usr && \
 	make && \
 	make install && \
-	rm -rf $DIR/libnice-0.1.16*
+	rm -rf /root/libnice-0.1.16*
 
 ### Build libwebsockets
-cd $DIR && git clone https://github.com/warmcat/libwebsockets.git && \
+RUN cd /root && git clone https://github.com/warmcat/libwebsockets.git && \
 	cd libwebsockets && \
 	git checkout v2.0.2 && \
 	mkdir build && \
 	cd build && \
-	cmake -DCMAKE_INSTALL_PREFIX:PATH=$DIR/usr .. && \
+	cmake -DCMAKE_INSTALL_PREFIX:PATH=/root/usr .. && \
 	make && \
 	make install && \
-	rm -rf $DIR/libwebsockets*
+	rm -rf /root/libwebsockets*
 
 ### Build libsrtp
-cd $DIR && wget https://github.com/cisco/libsrtp/archive/v2.0.0.tar.gz -O libsrtp-2.0.0.tar.gz && \
+RUN cd /root && wget https://github.com/cisco/libsrtp/archive/v2.0.0.tar.gz -O libsrtp-2.0.0.tar.gz && \
 	tar xfv libsrtp-2.0.0.tar.gz && \
 	cd libsrtp-2.0.0 && \
-	./configure --prefix=$DIR/usr --enable-openssl && \
+	./configure --prefix=/root/usr --enable-openssl && \
 	make shared_library && \
 	make install && \
-	rm -rf $DIR/libsrtp-2.0.0*
+	rm -rf /root/libsrtp-2.0.0*
 
 ### Build sofia-sip
-cd $DIR && wget http://conf.meetecho.com/sofiasip/sofia-sip-1.12.11.tar.gz && \
+RUN cd /root && wget http://conf.meetecho.com/sofiasip/sofia-sip-1.12.11.tar.gz && \
 	tar xfv sofia-sip-1.12.11.tar.gz && \
 	cd sofia-sip-1.12.11 && \
 	wget http://conf.meetecho.com/sofiasip/0001-fix-undefined-behaviour.patch && \
 	wget http://conf.meetecho.com/sofiasip/sofiasip-semicolon-authfix.diff && \
 	patch -p1 -u < 0001-fix-undefined-behaviour.patch && \
 	patch -p1 -u < sofiasip-semicolon-authfix.diff && \
-	./configure --prefix=$DIR/usr && \
+	./configure --prefix=/root/usr && \
 	make && \
 	make install && \
-	rm -rf $DIR/sofia-sip-1.12.11*
+	rm -rf /root/sofia-sip-1.12.11*
 
 ### Copy libs to build janus
-cd $DIR && cp -pvr $DIR/usr/* /usr/
+RUN cd /root && cp -pvr /root/usr/* /usr/
 
 ### Build janus gateway
-cd $DIR && git clone https://github.com/meetecho/janus-gateway.git && \
+RUN cd /root && git clone https://github.com/meetecho/janus-gateway.git && \
 	cd janus-gateway && \
 	# Issue Janus, debug memory
 	# https://github.com/meetecho/janus-gateway/issues/1808
-	sed -i 's|//~ #define REFCOUNT_DEBUG|#define REFCOUNT_DEBUG|g' refcount.h && \
+	sed -i "s|//~ #define REFCOUNT_DEBUG|#define REFCOUNT_DEBUG|g" refcount.h && \
 	./autogen.sh && \
         # Enable code dump janus
         #export CFLAGS="-fsanitize=address -fno-omit-frame-pointer" && \
@@ -107,21 +109,19 @@ cd $DIR && git clone https://github.com/meetecho/janus-gateway.git && \
 	make && \
 	make install && \
 	make configs && \
-	rm -rf $DIR/janus-gateway*
+	rm -rf /root/janus-gateway*
 
 ### Create deb package janus-webrtc-gateway
-cd $DIR
-apt-get install ruby ruby-dev rubygems build-essential -y
-gem install --no-ri --no-rdoc fpm
+RUN cd /root && apt-get install ruby ruby-dev rubygems build-essential -y && \
+	gem install --no-ri --no-rdoc fpm
 
-NAME=janus-webrtc-gateway
-VERSION=4
-MINOR=1
+ENV NAME=janus-webrtc-gateway
+ENV VERSION=1
+ENV MINOR=5
 
-mkdir $DIR/opt && \
-	cp -pvr /opt/janus $DIR/opt/
+RUN mkdir /root/opt && cp -pvr /opt/janus /root/opt/
 
-fpm -s dir -t deb -n $NAME -v $MINOR-$VERSION \
+RUN fpm -s dir -t deb -n $NAME -v $MINOR-$VERSION \
 	-d "libmicrohttpd-dev" \
 	-d "libjansson-dev" \
 	-d "libglib2.0-dev" \
@@ -141,6 +141,6 @@ fpm -s dir -t deb -n $NAME -v $MINOR-$VERSION \
 	etc opt usr
 
 ### Cleaning ###
-cd $DIR && rm -rf usr opt && \
-apt-get clean && apt-get autoclean && apt-get autoremove -y
+#RUN cd $DIR && rm -rf usr opt && \
+#	apt-get clean && apt-get autoclean && apt-get autoremove -y
 
