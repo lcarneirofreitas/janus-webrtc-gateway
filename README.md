@@ -5,3 +5,9 @@ Repo to build .deb package janus
 ```
 vagrant up
 ```
+
+- Show package *.deb
+```
+ls -lrth *.deb 
+-rw-r--r-- 1 user user 14M Oct 15 15:58 janus-webrtc-gateway_1-4_amd64.deb
+```
